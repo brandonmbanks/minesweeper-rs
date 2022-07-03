@@ -1,16 +1,29 @@
-mod random;
 mod minesweeper;
-
-use wasm_bindgen::prelude::*;
+mod random;
 
 use minesweeper::*;
+use std::cell::RefCell;
+use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
-extern "C" {
-    fn alert(s: &str);
+thread_local! {
+    static MINESWEEPER: RefCell<Minesweeper> = RefCell::new(Minesweeper::new(10, 10, 15));
 }
 
-#[wasm_bindgen]
-pub fn greet(name: &str) {
-    alert(&format!("Hello, {}!", name));
+#[wasm_bindgen(js_name=getGame)]
+pub fn get_game() -> String {
+    MINESWEEPER.with(|ms| ms.borrow().to_string())
+}
+
+#[wasm_bindgen(js_name=revealCell)]
+pub fn reveal_cell(x: usize, y: usize) {
+    MINESWEEPER.with(|ms| {
+        ms.borrow_mut().reveal((x, y));
+    });
+}
+
+#[wasm_bindgen(js_name=toggleFlag)]
+pub fn toggle_flag(x: usize, y: usize) {
+    MINESWEEPER.with(|ms| {
+        ms.borrow_mut().toggle_flag((x, y));
+    });
 }

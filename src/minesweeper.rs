@@ -7,13 +7,13 @@ use std::{
 
 type Position = (usize, usize);
 
-enum RevealResult {
+pub enum RevealResult {
     Mine,
     NoMine(u8),
 }
 
 #[derive(Debug)]
-struct Minesweeper {
+pub struct Minesweeper {
     width: usize,
     height: usize,
     open_fields: HashSet<Position>,
@@ -29,14 +29,14 @@ impl Display for Minesweeper {
 
                 if !self.open_fields.contains(&pos) {
                     if self.flags.contains(&pos) {
-                        f.write_str("🏴‍☠️ ")?;
+                        f.write_str("🚩 ")?;
                     } else {
-                        f.write_str("🟪 ")?;
+                        f.write_str("⬜ ")?;
                     }
                 } else if self.mines.contains(&pos) {
                     f.write_str("💣 ")?;
                 } else {
-                    write!(f, " {} ", self.num_neighboring_mines(pos))?;
+                    write!(f, "{} ", self.num_neighboring_mines(pos))?;
                 }
             }
 
@@ -70,8 +70,8 @@ impl Minesweeper {
         let width = self.width;
         let height = self.height;
 
-        ((x - 1).max(0)..=(x + 1).min(width - 1))
-            .flat_map(move |i| ((y - 1).max(0)..=(y + 1).min(height - 1)).map(move |j| (i, j)))
+        (x.max(1) - 1..=(x + 1).min(width - 1))
+            .flat_map(move |i| (y.max(1) - 1..=(y + 1).min(height - 1)).map(move |j| (i, j)))
             .filter(move |&pos| pos != (x, y))
     }
 
