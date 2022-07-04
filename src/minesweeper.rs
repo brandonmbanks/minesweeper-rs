@@ -7,18 +7,20 @@ use std::{
 
 type Position = (usize, usize);
 
-enum RevealResult {
+pub enum RevealResult {
     Mine,
     NoMine(u8),
 }
 
 #[derive(Debug)]
-struct Minesweeper {
+pub struct Minesweeper {
     width: usize,
     height: usize,
     open_fields: HashSet<Position>,
+    num_mines: usize,
     mines: HashSet<Position>,
     flags: HashSet<Position>,
+    lost: bool,
 }
 
 impl Display for Minesweeper {
@@ -29,14 +31,14 @@ impl Display for Minesweeper {
 
                 if !self.open_fields.contains(&pos) {
                     if self.flags.contains(&pos) {
-                        f.write_str("🏴‍☠️ ")?;
+                        f.write_str("🚩 ")?;
                     } else {
-                        f.write_str("🟪 ")?;
+                        f.write_str("⬜ ")?;
                     }
                 } else if self.mines.contains(&pos) {
                     f.write_str("💣 ")?;
                 } else {
-                    write!(f, " {} ", self.num_neighboring_mines(pos))?;
+                    write!(f, "{} ", self.num_neighboring_mines(pos))?;
                 }
             }
 
@@ -53,25 +55,34 @@ impl Minesweeper {
             width,
             height,
             open_fields: HashSet::new(),
-            mines: {
-                let mut mines = HashSet::new();
-
-                while mines.len() < num_mines {
-                    mines.insert((random_num(0, width), random_num(0, height)));
-                }
-
-                mines
-            },
+            num_mines: num_mines,
+            mines: HashSet::new(),
             flags: HashSet::new(),
+            lost: false,
         }
+    }
+
+    fn populate_mines(&mut self, pos: Position) {
+        let mut mines = HashSet::new();
+
+        while mines.len() < self.num_mines {
+            let x = random_num(0, self.width);
+            let y = random_num(0, self.width);
+
+            if (x, y) != pos {
+                mines.insert((x, y));
+            }
+        }
+
+        self.mines = mines;
     }
 
     fn neighbors(&self, (x, y): Position) -> impl Iterator<Item = Position> {
         let width = self.width;
         let height = self.height;
 
-        ((x - 1).max(0)..=(x + 1).min(width - 1))
-            .flat_map(move |i| ((y - 1).max(0)..=(y + 1).min(height - 1)).map(move |j| (i, j)))
+        (x.max(1) - 1..=(x + 1).min(width - 1))
+            .flat_map(move |i| (y.max(1) - 1..=(y + 1).min(height - 1)).map(move |j| (i, j)))
             .filter(move |&pos| pos != (x, y))
     }
 
@@ -82,21 +93,28 @@ impl Minesweeper {
     }
 
     pub fn reveal(&mut self, pos: Position) -> Option<RevealResult> {
-        if self.flags.contains(&pos) {
+        if self.flags.contains(&pos) || self.lost {
             return None;
         }
+
+        if self.open_fields.is_empty() {
+            self.populate_mines(pos);
+        }
+
         self.open_fields.insert(pos);
 
         let is_mine = self.mines.contains(&pos);
         if is_mine {
+            self.lost = true;
             Some(RevealResult::Mine)
         } else {
+            // TODO: cascade open cells that aren't touching mines
             Some(RevealResult::NoMine(self.num_neighboring_mines(pos)))
         }
     }
 
     pub fn toggle_flag(&mut self, pos: Position) {
-        if self.open_fields.contains(&pos) {
+        if self.open_fields.contains(&pos) || self.lost {
             return;
         }
 
