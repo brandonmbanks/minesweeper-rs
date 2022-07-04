@@ -106,6 +106,7 @@ impl Minesweeper {
         let is_mine = self.mines.contains(&pos);
         if is_mine {
             self.lost = true;
+            self.open_fields.extend(&self.mines);
             Some(RevealResult::Mine)
         } else {
             // TODO: cascade open cells that aren't touching mines
