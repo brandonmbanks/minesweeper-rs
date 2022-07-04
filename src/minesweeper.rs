@@ -108,6 +108,7 @@ impl Minesweeper {
             self.lost = true;
             Some(RevealResult::Mine)
         } else {
+            // TODO: cascade open cells that aren't touching mines
             Some(RevealResult::NoMine(self.num_neighboring_mines(pos)))
         }
     }
