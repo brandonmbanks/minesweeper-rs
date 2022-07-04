@@ -22,6 +22,7 @@ Then go to http://localhost:3000.
 
 ### TODO
 * 0 squares should cascade open
+* Reveal all mines on loss
 
 ### Credits
 Based on project by [yishn](https://github.com/yishn)

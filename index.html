@@ -28,7 +28,7 @@
   <div id="root"></div>
 
   <script type="module">
-    import init, { getGame, revealCell } from './pkg/minesweeper_rs.js'
+    import init, { getGame, revealCell, toggleFlag } from './pkg/minesweeper_rs.js'
     async function main() {
       await init();
 
@@ -57,6 +57,13 @@
             e.preventDefault();
 
             revealCell(x, y);
+            render();
+          });
+
+          element.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+
+            toggleFlag(x, y);
             render();
           });
 
