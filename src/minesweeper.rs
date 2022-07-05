@@ -92,12 +92,23 @@ impl Minesweeper {
             .count() as u8
     }
 
+    fn open_adjacent(&mut self, pos: Position) {
+        for neighbor in self.neighbors(pos) {
+            if !self.open_fields.contains(&neighbor) {
+                self.open_fields.insert(neighbor);
+                if self.num_neighboring_mines(neighbor) == 0 {
+                    self.open_adjacent(neighbor);
+                }
+            }
+        }
+    }
+
     pub fn reveal(&mut self, pos: Position) -> Option<RevealResult> {
         if self.flags.contains(&pos) || self.lost {
             return None;
         }
 
-        if self.open_fields.is_empty() {
+        if self.open_fields.is_empty() && self.mines.is_empty() {
             self.populate_mines(pos);
         }
 
@@ -109,7 +120,10 @@ impl Minesweeper {
             self.open_fields.extend(&self.mines);
             Some(RevealResult::Mine)
         } else {
-            // TODO: cascade open cells that aren't touching mines
+            let num_adjacent_mines = self.num_neighboring_mines(pos);
+            if num_adjacent_mines == 0 {
+                self.open_adjacent(pos);
+            }
             Some(RevealResult::NoMine(self.num_neighboring_mines(pos)))
         }
     }
@@ -129,6 +143,8 @@ impl Minesweeper {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use crate::minesweeper::Minesweeper;
 
     #[test]
@@ -140,5 +156,24 @@ mod tests {
         ms.reveal((6, 6));
 
         println!("{}", ms);
+    }
+
+    #[test]
+    fn test_open_other_zeros() {
+        let mut ms = Minesweeper::new(3, 3, 1);
+
+        ms.mines = HashSet::from([(0, 0)]);
+
+        // X 1 0
+        // 1 1 0
+        // 0 0 0 <- reveal here should trigger open of connected 0s
+
+        ms.reveal((2, 2));
+
+        assert!(ms.open_fields.contains(&(2, 2)));
+        assert!(ms.open_fields.contains(&(2, 1)));
+        assert!(ms.open_fields.contains(&(2, 0)));
+        assert!(ms.open_fields.contains(&(1, 2)));
+        assert!(ms.open_fields.contains(&(0, 2)));
     }
 }
