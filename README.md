@@ -1,6 +1,20 @@
 # minesweeper-rs
 Minesweeper coded in Rust
 
+<img src="gameplay_1.png" alt="gameplay" width="200"/>
+<img src="gameplay_2.png" alt="gameplay" width="200"/>
+
+
+### Features
+* Fully functional gameplay
+* Recursive opening of cells which do not touch mines
+* Display bombs on loss
+
+### TODO
+* Win/Loss display
+* Ability to start new game
+* Customize width/height num mines
+
 ## How to use
 
 Download and install Rust!
@@ -19,9 +33,6 @@ npx serve
 ```
 
 Then go to http://localhost:3000.
-
-### TODO
-* 0 squares should cascade open
 
 ### Credits
 Based on project by [yishn](https://github.com/yishn)
