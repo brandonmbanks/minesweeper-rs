@@ -2,7 +2,7 @@ use crate::random::random_num;
 
 use std::{
     collections::HashSet,
-    fmt::{Display, Write},
+    fmt::Display,
 };
 
 type Position = (usize, usize);
@@ -13,14 +13,21 @@ pub enum RevealResult {
 }
 
 #[derive(Debug)]
+pub enum GameState {
+    Lost,
+    Playing,
+    Won,
+}
+
+#[derive(Debug)]
 pub struct Minesweeper {
     width: usize,
     height: usize,
-    open_fields: HashSet<Position>,
+    open_cells: HashSet<Position>,
     num_mines: usize,
     mines: HashSet<Position>,
     flags: HashSet<Position>,
-    lost: bool,
+    game_state: GameState,
 }
 
 impl Display for Minesweeper {
@@ -29,7 +36,7 @@ impl Display for Minesweeper {
             for x in 0..self.width {
                 let pos = (x, y);
 
-                if !self.open_fields.contains(&pos) {
+                if !self.open_cells.contains(&pos) {
                     if self.flags.contains(&pos) {
                         f.write_str("🚩 ")?;
                     } else {
@@ -42,7 +49,7 @@ impl Display for Minesweeper {
                 }
             }
 
-            f.write_char('\n')?;
+            f.write_str("\\n")?;
         }
 
         Ok(())
@@ -54,11 +61,19 @@ impl Minesweeper {
         Minesweeper {
             width,
             height,
-            open_fields: HashSet::new(),
+            open_cells: HashSet::new(),
             num_mines: num_mines,
             mines: HashSet::new(),
             flags: HashSet::new(),
-            lost: false,
+            game_state: GameState::Playing,
+        }
+    }
+
+    pub fn get_state(&self) -> &str {
+        match self.game_state {
+            GameState::Lost => "lost",
+            GameState::Playing => "playing",
+            GameState::Won => "won",
         }
     }
 
@@ -94,8 +109,8 @@ impl Minesweeper {
 
     fn open_adjacent(&mut self, pos: Position) {
         for neighbor in self.neighbors(pos) {
-            if !self.open_fields.contains(&neighbor) {
-                self.open_fields.insert(neighbor);
+            if !self.open_cells.contains(&neighbor) {
+                self.open_cells.insert(neighbor);
                 if self.num_neighboring_mines(neighbor) == 0 {
                     self.open_adjacent(neighbor);
                 }
@@ -104,32 +119,42 @@ impl Minesweeper {
     }
 
     pub fn reveal(&mut self, pos: Position) -> Option<RevealResult> {
-        if self.flags.contains(&pos) || self.lost {
+        if self.flags.contains(&pos) || matches!(self.game_state, GameState::Lost | GameState::Won)
+        {
             return None;
         }
 
-        if self.open_fields.is_empty() && self.mines.is_empty() {
+        if self.open_cells.is_empty() && self.mines.is_empty() {
             self.populate_mines(pos);
         }
 
-        self.open_fields.insert(pos);
+        self.open_cells.insert(pos);
 
         let is_mine = self.mines.contains(&pos);
         if is_mine {
-            self.lost = true;
-            self.open_fields.extend(&self.mines);
+            self.game_state = GameState::Lost;
+            self.open_cells.extend(&self.mines);
             Some(RevealResult::Mine)
         } else {
             let num_adjacent_mines = self.num_neighboring_mines(pos);
             if num_adjacent_mines == 0 {
                 self.open_adjacent(pos);
             }
+
+            let total_cells = self.width * self.height;
+
+            if total_cells - self.num_mines == self.open_cells.len() {
+                self.game_state = GameState::Won;
+            }
+
             Some(RevealResult::NoMine(self.num_neighboring_mines(pos)))
         }
     }
 
     pub fn toggle_flag(&mut self, pos: Position) {
-        if self.open_fields.contains(&pos) || self.lost {
+        if self.open_cells.contains(&pos)
+            || matches!(self.game_state, GameState::Lost | GameState::Won)
+        {
             return;
         }
 
@@ -145,17 +170,24 @@ impl Minesweeper {
 mod tests {
     use std::collections::HashSet;
 
-    use crate::minesweeper::Minesweeper;
+    use crate::minesweeper::*;
 
     #[test]
-    fn test() {
-        let mut ms = Minesweeper::new(10, 10, 5);
+    fn test_flagged_cell_wont_open() {
+        let mut ms = Minesweeper::new(2, 2, 1);
+        ms.mines = HashSet::from([(0, 0), (0, 1)]);
 
-        ms.reveal((5, 5));
-        ms.toggle_flag((6, 6));
-        ms.reveal((6, 6));
+        ms.reveal((1, 0));
+        ms.toggle_flag((0, 0));
+        ms.reveal((0, 0));
 
-        println!("{}", ms);
+        assert!(ms.open_cells.contains(&(1, 0)));
+
+        assert!(ms.flags.contains(&(0, 0)));
+        // (6, 6) should not be open because of flag
+        assert!(!ms.open_cells.contains(&(0, 0)));
+
+        assert!(matches!(ms.game_state, GameState::Playing))
     }
 
     #[test]
@@ -170,10 +202,30 @@ mod tests {
 
         ms.reveal((2, 2));
 
-        assert!(ms.open_fields.contains(&(2, 2)));
-        assert!(ms.open_fields.contains(&(2, 1)));
-        assert!(ms.open_fields.contains(&(2, 0)));
-        assert!(ms.open_fields.contains(&(1, 2)));
-        assert!(ms.open_fields.contains(&(0, 2)));
+        assert!(ms.open_cells.contains(&(2, 2)));
+        assert!(ms.open_cells.contains(&(2, 1)));
+        assert!(ms.open_cells.contains(&(2, 0)));
+        assert!(ms.open_cells.contains(&(1, 2)));
+        assert!(ms.open_cells.contains(&(0, 2)));
+    }
+
+    #[test]
+    fn test_revealing_mine_loses_game() {
+        let mut ms = Minesweeper::new(2, 2, 1);
+        ms.mines = HashSet::from([(0, 0)]);
+
+        ms.reveal((0, 0));
+
+        assert!(matches!(ms.game_state, GameState::Lost));
+    }
+
+    #[test]
+    fn test_opening_last_non_bomb_cell_wins_game() {
+        let mut ms = Minesweeper::new(2, 1, 1);
+        ms.mines = HashSet::from([(0, 0)]);
+
+        ms.reveal((1, 0));
+
+        assert!(matches!(ms.game_state, GameState::Won));
     }
 }

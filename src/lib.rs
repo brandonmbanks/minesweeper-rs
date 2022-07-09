@@ -11,7 +11,9 @@ thread_local! {
 
 #[wasm_bindgen(js_name=getGame)]
 pub fn get_game() -> String {
-    MINESWEEPER.with(|ms| ms.borrow().to_string())
+    MINESWEEPER.with(|ms| {
+        format!("{{\"game\": \"{}\", \"gameState\": \"{}\"}}", ms.borrow().to_string(), ms.borrow().get_state())
+    })
 }
 
 #[wasm_bindgen(js_name=revealCell)]

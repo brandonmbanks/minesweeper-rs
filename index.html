@@ -26,6 +26,7 @@
 <body>
   <h3>Minesweeper</h3>
   <div id="root"></div>
+  <div id="state"></div>
 
   <script type="module">
     import init, { getGame, revealCell, toggleFlag } from './pkg/minesweeper_rs.js'
@@ -39,9 +40,11 @@
       let root = document.getElementById('root');
       root.innerHTML = ""
 
-      let data = getGame()
-        .split('\n')
-        .map((row) => row.trim().split(' '));
+      const game = JSON.parse(getGame());
+
+      let data = game.game
+        .trim().split('\n')
+        .map(row => row.trim().split(' '));
 
       root.style.display = "inline-grid";
       root.style.gridTemplate = `repeat(${data.length}, auto) / repeat(${data[0].length}, auto)`;
@@ -69,6 +72,16 @@
 
           root.appendChild(element);
         }
+      }
+
+      let state = document.getElementById('state');
+
+      if (game.gameState === "lost") {
+        state.innerHTML = "<p>Game Over!</p>";
+      }
+
+      if (game.gameState === "won") {
+        state.innerHTML = "<p>You Won!</p>";
       }
     }
 
