@@ -9,11 +9,10 @@ Minesweeper coded in Rust
 * Fully functional gameplay
 * Recursive opening of cells which do not touch mines
 * Display bombs on loss
+* Display win or loss message at end
 
 ### TODO
-* Win/Loss display
-* Ability to start new game
-* Customize width/height num mines
+* Customize width/height num mines for new games
 
 ## How to use
 
@@ -33,6 +32,24 @@ npx serve
 ```
 
 Then go to http://localhost:3000.
+
+## Tests
+The current tests are at the end of the file in `src/minesweeper.rs`.
+
+Run all tests with the following command.
+```bash
+cargo test
+```
+
+Run individual tests by passing the test name to `cargo test`.
+```bash
+cargo test test_name
+```
+
+By default Rust's test runner will capture stdout and only display if the test fails. You can display output for passing tests with the `--show-output` flag.
+```bash
+cargo test -- --show-output
+```
 
 ### Credits
 Based on project by [yishn](https://github.com/yishn)
